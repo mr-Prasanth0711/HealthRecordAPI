@@ -35,7 +35,7 @@ namespace HealthRecordAPI.Controllers
 
             await _authdatabase.Record.AddAsync(recordObject);
             await _authdatabase.SaveChangesAsync();
-            return Ok(new { message = "Saved Successfullyy" }); 
+            return Ok(new { message = "Saved Successfullyyyy" }); 
         }
 
 
