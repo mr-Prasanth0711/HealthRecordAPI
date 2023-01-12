@@ -20,6 +20,8 @@ using System;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using HealthRecordAPI.Migrations;
+using System.Text;
+using System.IO;
 
 namespace HealthRecordAPI.Controllers
 {
@@ -68,7 +70,8 @@ namespace HealthRecordAPI.Controllers
         [HttpGet("GetUsers")]
         public async Task<IActionResult> GetDetails()
         {
-            var user = await _authdatabase.Users.ToListAsync();
+            var user = from var in _authdatabase.Users where var.Role == "User" select var;
+
             return Ok(user);
         }
 
@@ -81,8 +84,12 @@ namespace HealthRecordAPI.Controllers
 
             if (user == null)
                 return Ok(new { Message = "User not found." });
-
-            return Ok(new { Message = "Login Successfully." });
+            user.Token = jwtToken(user);
+            return Ok(new
+            {
+                Token = user.Token,
+                Message = "Login Successfully."
+            });
         }
 
 
@@ -124,7 +131,7 @@ namespace HealthRecordAPI.Controllers
             if (await CheckEmailExistAsync(userObject.Email))
                 return BadRequest(new { message = "Email id Already Exist" });
 
-            userObject.Password = PasswordEncrypt.PasswordEncryption(userObject.Password);            
+            userObject.Password = PasswordEncrypt.PasswordEncryption(userObject.Password);
             userObject.Role = "User";
             userObject.Token = "";
             await _authdatabase.Users.AddAsync(userObject);
@@ -132,6 +139,7 @@ namespace HealthRecordAPI.Controllers
             await _authdatabase.SaveChangesAsync();
             return Ok(new { Message = "Registration Success." });
         }
+
 
 
         private Task<bool> CheckUsenameExistAsync(string username)
@@ -237,6 +245,7 @@ namespace HealthRecordAPI.Controllers
             }
         }
 
+
         [HttpPost("confirmforgetpasswordOTP")]
         public async Task<IActionResult> ConfirmForgetPasswordOTP([FromBody] ConfirmForgetPasswordOTP confirmForgetPasswordOTP)
         {
@@ -312,6 +321,9 @@ namespace HealthRecordAPI.Controllers
                 return BadRequest("Somthing went wroung");
             }
         }
+
+
+
         [HttpPost("SaveEdit")]
         public async Task<IActionResult> EditAPI([FromBody] BasicDetailModel Edit)
         {
@@ -327,6 +339,7 @@ namespace HealthRecordAPI.Controllers
                 user.height = Edit.height;
                 user.weight = Edit.weight;
                 user.bloodpressure = Edit.bloodpressure;
+                user.diseases = Edit.diseases;
                 user.email = Edit.email;
                 user.street = Edit.street;
                 user.landmark = Edit.landmark;
@@ -343,11 +356,12 @@ namespace HealthRecordAPI.Controllers
             }
         }
 
+
         [HttpPost("ChangePassword")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePassword newchangePassword)
         {
             var user = await _authdatabase.Users.FirstOrDefaultAsync(x => x.Username == newchangePassword.username);
- 
+
             if (PasswordEncrypt.VerifyPassword(newchangePassword.oldpassword, user.Password))
             {
                 if (newchangePassword.newpassword == newchangePassword.confirmpassword)
@@ -361,8 +375,8 @@ namespace HealthRecordAPI.Controllers
                         pwd.Password = PasswordEncrypt.PasswordEncryption(newchangePassword.newpassword);
                         pwd.Changepassworddate = DateTime.Now;
 
-                        ///await _authdatabase.Users.AddAsync(pwd);
-                    } 
+                        
+                    }
                     await _authdatabase.SaveChangesAsync();
                 }
                 else
@@ -373,10 +387,79 @@ namespace HealthRecordAPI.Controllers
             else
             {
                 return BadRequest(new { message = "Old Password is Wrong" });
-            } 
+            }
             return Ok(new { message = "Change Password Successfully" });
         }
 
+        [HttpPost("SendSMS")]
+        public string Sms()
+        {
+            // Add below code in your application
+            string url = "https://api2.juvlon.com/v4/sendTransactionalSMS";
+            HttpWebRequest myHttpWebRequest = (HttpWebRequest)HttpWebRequest.Create(url);
+            myHttpWebRequest.Method = "POST";
+
+            string postData = "{\"apiKey\":\"OTM2MTMjIyMyMDIzLTAxLTA2IDEyOjM5OjQy\"" +
+                               ",\"mailerID\":\"28\"" +
+                               ",\"subID\":\"98\"" +
+                               ",\"mobile\":\"8825713156\"" +
+                               ",\"email\":\"example@abc.com\"" +
+                               ",\"listName\":\"ListABC\"" +
+                                ",\"prefix\":\"Mr.\"" +
+                                ",\"firstName\":\"John\"" +
+                                ",\"middleName\":\"K\"" +
+                                ",\"lastName\":\"Smith\"" +
+                                ",\"phone\":\"+91227492682648\"" +
+                                ",\"address\":\"House 5, Suncity\"" +
+                                ",\"city\":\"Mumbai\"" +
+                                ",\"state\":\"Maharashtra\"" +
+                                ",\"pinCode\":\"9604\"" +
+                                ",\"Country\":\"India\"" +
+                                ",\"residencePhone\":\"912274926829\"" +
+                                ",\"designation\":\"Project Manager\"" +
+                                ",\"company\":\"XYZ ltd.\"" +
+                                ",\"companyAddress\":\"Office no 5, ABC IT Park\"" +
+                                ",\"companyCity\":\"Mumbai\"" +
+                                ",\"companyState\":\"Maharashtra\"" +
+                                ",\"companyCountry\":\"India\"" +
+                                ",\"companyPin\":\"9607\"" +
+                                ",\"companyPhone\":\"+912274926826\"" +
+                                ",\"companyFax\":\"+912274926827\"" +
+                                ",\"birthday\":\"1988-06-10\"" +
+                                ",\"anniversary\":\"2015-06-11\"" +
+                                ",\"referenceNo\":\"123\"" +
+                                ",\"extra1\":\"98732\"" +
+                                ",\"extra2\":\"989\"" +
+                                ",\"extra3\":\"7687\"" +
+                                ",\"extra4\":\"989\"" +
+                                ",\"extra5\":\"7687\"" +
+                                ",\"extra6\":\"K987JF\"" +
+                                ",\"customField\":\"This is an Reminder for Tommorrow you have an appoinment with your doctor\"" + " }";
+
+            byte[] data = Encoding.ASCII.GetBytes(postData);
+            myHttpWebRequest.ContentType = "application/json";
+            System.Net.ServicePointManager.SecurityProtocol |=
+            SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+            ///ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+            myHttpWebRequest.ContentLength = data.Length;
+            Stream requestStream = myHttpWebRequest.GetRequestStream();
+            requestStream.Write(data, 0, data.Length);
+            requestStream.Close();
+
+            HttpWebResponse myHttpWebResponse = (HttpWebResponse)myHttpWebRequest.GetResponse();
+            Stream responseStream = myHttpWebResponse.GetResponseStream();
+            StreamReader myStreamReader = new StreamReader(responseStream, Encoding.Default);
+            string pageContent = myStreamReader.ReadToEnd();
+
+            myStreamReader.Close();
+            responseStream.Close();
+            myHttpWebResponse.Close();
+              
+
+            return pageContent;
+        }
+
+            
 
 
 

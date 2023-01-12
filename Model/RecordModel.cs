@@ -22,5 +22,18 @@ namespace HealthRecordAPI.Model
         public DateTime LastDate { get; set; }
 
         public DateTime NextDate { get; set; }
+
+        public string ?files { get; set; }
+
+
+
+
+
+
+
     }
 }
+
+
+
+

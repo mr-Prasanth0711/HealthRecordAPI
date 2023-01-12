@@ -15,9 +15,7 @@ namespace HealthRecordAPI.Context
         public DbSet<GetDetailsModel> getDetails { get; set; }
 
         public DbSet<RecordModel> Record { get; set; }
-
-
-
+        public object PostedFile { get; internal set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

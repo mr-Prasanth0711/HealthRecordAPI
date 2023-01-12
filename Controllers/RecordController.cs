@@ -2,11 +2,13 @@
 using HealthRecordAPI.Model;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Data.SqlClient;
 
 namespace HealthRecordAPI.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class RecordController : ControllerBase
@@ -33,9 +35,13 @@ namespace HealthRecordAPI.Controllers
             if (recordObject == null)
                 return BadRequest();
 
+            recordObject.files = recordObject.files.Remove(0, 12); 
+
+
+
             await _authdatabase.Record.AddAsync(recordObject);
             await _authdatabase.SaveChangesAsync();
-            return Ok(new { message = "Saved Successfullyyyy" }); 
+            return Ok(new { message = "Saved Successfully" });
         }
 
 
@@ -78,11 +84,11 @@ namespace HealthRecordAPI.Controllers
         {
             try
             {
-                var path = Path.Combine(Directory.GetCurrentDirectory() + @"\ImportFiles\UploadedFiles");
+                var path = Path.Combine(Directory.GetCurrentDirectory() + @"\Record\UploadedFiles");
                 if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
                 var ext = Path.GetExtension(formFile.FileName);
-                var allowedExtensions = new string[] { ".doc", ".xls", ".ppt", ".pdf", ".jpg" };
+                var allowedExtensions = new string[] { ".doc", ".xls", ".ppt", ".pdf", ".jpg", ".png" };
                 if (!allowedExtensions.Contains(ext))
                 {
                     string msg = string.Format("Only{0}extension are allowed", string.Join(",", allowedExtensions));
@@ -104,6 +110,29 @@ namespace HealthRecordAPI.Controllers
         }
 
 
+        [HttpPost]
+        [Route("{Filename}")]
+        public async Task<IActionResult> GetFile([FromRoute] string Filename)
+        {
+            DirectoryInfo d = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory() + @"\Record\UploadedFiles"));
+            FileInfo[] Files = d.GetFiles("*.pdf");
+            string str = "";
+            string filepath = "";
+
+            str = Filename;
+
+            filepath = Path.Combine(Directory.GetCurrentDirectory() + @"\Record\UploadedFiles", str);
+            return File(System.IO.File.ReadAllBytes(filepath), "file/*", System.IO.Path.GetFileName(filepath));
+        }
+
+
+        [HttpGet("GetRecords")]
+        public async Task<IActionResult> GetAllRecords()
+        {
+
+            var user = await _authdatabase.Record.ToListAsync();
+            return Ok(user);
+        }
 
 
 

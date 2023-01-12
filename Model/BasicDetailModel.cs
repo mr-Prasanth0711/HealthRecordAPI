@@ -16,6 +16,8 @@ namespace HealthRecordAPI.Model
         public string height { get; set; }
         public string weight { get; set; }
         public string bloodpressure { get; set; }
+
+        public string diseases { get; set; }
         public string email { get; set; }
         public string street { get; set; }
         public string landmark { get; set; }

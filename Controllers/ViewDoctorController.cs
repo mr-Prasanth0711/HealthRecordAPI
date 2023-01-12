@@ -52,14 +52,18 @@ namespace HealthRecordAPI.Controllers
             var user = await _authdatabase.Record.FirstOrDefaultAsync(x => x.Id == Edit.Id);
             if (user != null)
             {
+                Edit.files = Edit.files.Remove(0, 12);
+
                 user.Name = Edit.Name;
                 user.DoctorName = Edit.DoctorName;
                 user.RecordType = Edit.RecordType;
+                user.Email = Edit.Email;
                 user.Problem = Edit.Problem;
                 user.Address = Edit.Address;
                 user.LastDate = Edit.LastDate;
                 user.NextDate = Edit.NextDate;
-                
+                user.files = Edit.files;
+
                 await _authdatabase.SaveChangesAsync();
                 return Ok(new { message = "Update Saved Successfully" });
 
@@ -69,6 +73,8 @@ namespace HealthRecordAPI.Controllers
                 return BadRequest(new { message = "Please Fill All Fields" });
             }
         }
+
+
 
 
     }
